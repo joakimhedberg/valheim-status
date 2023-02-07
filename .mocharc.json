@@ -1,0 +1,9 @@
+{
+  "extension": [".ts"],
+  "spec": "src/**/*.test.ts",
+  "package": "./package.json",
+  "require": [
+    "ts-node/register"
+  ],
+  "module": "commonjs"
+}

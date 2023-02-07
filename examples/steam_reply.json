@@ -1,0 +1,26 @@
+{
+    "response": {
+        "players": [
+            {
+                "steamid": "1212124123213",
+                "communityvisibilitystate": 3,
+                "profilestate": 1,
+                "personaname": "Orvar",
+                "profileurl": "https://steamcommunity.com/profiles/1212124123213/",
+                "avatar": "https://avatars.akamai.steamstatic.com/c23721df6df3f2bd48dc2fb9d8d4e198dd28d673.jpg",
+                "avatarmedium": "https://avatars.akamai.steamstatic.com/c23721df6df3f2bd48dc2fb9d8d4e198dd28d673_medium.jpg",
+                "avatarfull": "https://avatars.akamai.steamstatic.com/c23721df6df3f2bd48dc2fb9d8d4e198dd28d673_full.jpg",
+                "avatarhash": "c23721df6df3f2bd48dc2fb9d8d4e198dd28d673",
+                "lastlogoff": 12141241232,
+                "personastate": 0,
+                "realname": "Torbjörn",
+                "primaryclanid": "124124512312321",
+                "timecreated": 2312312321321,
+                "personastateflags": 0,
+                "loccountrycode": "DE",
+                "locstatecode": "12",
+                "loccityid": 24234
+            }
+        ]
+    }
+}
