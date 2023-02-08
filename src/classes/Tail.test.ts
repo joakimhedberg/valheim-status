@@ -26,7 +26,7 @@ describe('Testing the Tail class', () => {
   it('Should tail a file and catch two appended rows', async() => {
     const input: string[] = ['Row 3', 'Row 4']
     const result = await getTailResult(test_filename, input)
-    return expect(result).to.deep.equal(input)
+    expect(result).to.deep.equal(input)
   })
 
   after(() => {

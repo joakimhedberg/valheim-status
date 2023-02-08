@@ -8,7 +8,7 @@ describe('Testing the file watcher', () => {
     fs.writeFileSync(test_filename, '')
   })
   
-  it('Should detect file changes', async() => {
+  it('Should detect file changes', async () => {
     const fw = new FileWatcher(test_filename)
     let hadChanges = false
     fw.on('change', () => {
@@ -17,8 +17,9 @@ describe('Testing the file watcher', () => {
     fw.watch()
     fs.appendFileSync(test_filename, 'Changes happens here')
     await new Promise(resolve => setTimeout(resolve, 100))
-
-    return expect(hadChanges).to.be.true
+    fw.unwatch()
+    await new Promise(resolve => setTimeout(resolve, 100))
+    expect(hadChanges).to.be.true
   })
 
   after(() => {

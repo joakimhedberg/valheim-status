@@ -11,6 +11,7 @@ const getUserStatus = async (): Promise<{connected: number, disconnected: number
     ch.on('player_disconnect', () => disconnected++)
 
     ch.on('lines_end', () => {
+      ch.stop()
       resolve({ connected: connected, disconnected: disconnected })
     })
 
@@ -20,7 +21,7 @@ const getUserStatus = async (): Promise<{connected: number, disconnected: number
 
 
 describe('Test the connection handler', () => {  
-  before(async function() {
+  before(async function () {
     const status = await getUserStatus()
     this['connected'] = status.connected
     this['disconnected'] = status.disconnected
@@ -29,7 +30,7 @@ describe('Test the connection handler', () => {
   it('Should match the number of connected users', function() {
     expect(this['connected']).to.equal(84)
   })
-  
+
   it('Should match the number of disconnected users', function() {
     expect(this['disconnected']).to.equal(76)
   })

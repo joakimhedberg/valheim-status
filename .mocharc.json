@@ -1,7 +1,9 @@
 {
   "extension": [".ts"],
+  "recursive": true,
   "spec": "src/**/*.test.ts",
   "package": "./package.json",
+  "exit": true,
   "require": [
     "ts-node/register"
   ],
