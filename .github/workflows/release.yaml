@@ -1,0 +1,40 @@
+name: Release
+on:
+  workflow_run:
+    workflows: [CI]
+    types:
+      - completed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use node 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: 'npm'
+      - name: Install
+        run: npm install
+      - name: Run tests
+        run: yarn run test
+      - name: Build
+        run: yarn run build
+      - name: Prepare release
+        run: | 
+          mkdir release
+          cp -r dist release/dist
+          cp package.json release/
+          cp -r node_modules/ release/
+      - name: Release
+        uses: s0/git-publish-subdir-action@develop
+        env:
+          REPO: git@github.com:joakimhedberg/valheim-status.git
+          BRANCH: release
+          FOLDER: dist
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_KEY }}
+      
