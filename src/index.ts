@@ -33,8 +33,15 @@ if (process.env.PUSHOVER_USER && process.env.PUSHOVER_TOKEN && process.env.MODE 
   }
 }
 
-parser.on('player_connect', (player: Player, isCatchup?: boolean) => {
+parser.on('player_connect', async(player: Player, isCatchup?: boolean) => {
+  // If this is a catchup event we don't want to spam pushover with hundreds of messages.
   if (!isCatchup) {
+    let maxRetries = 5
+    while (player.player_name === undefined && maxRetries > 0) {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      await player.loadName(process.env.STEAM_API_KEY)
+      maxRetries--
+    }
     pushover?.send('Valheim user CONNECTED', `${player.player_name} joined the game`)
   }
 })
