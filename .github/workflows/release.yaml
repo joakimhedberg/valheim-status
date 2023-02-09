@@ -4,8 +4,6 @@ on:
     workflows: [CI]
     types:
       - completed
-    tags:
-      - Release*
 jobs:
   build:
     runs-on: ubuntu-latest
