@@ -35,6 +35,6 @@ jobs:
         env:
           REPO: git@github.com:joakimhedberg/valheim-status.git
           BRANCH: release
-          FOLDER: dist
+          FOLDER: release
           SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_KEY }}
       
