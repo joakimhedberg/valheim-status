@@ -1,7 +1,7 @@
 name: Node.js Continuous Integration
 on:
   push:
-    branches: ['*']
+    branches: ['master']
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,3 +21,10 @@ jobs:
         run: yarn run test
       - name: Build the project
         run: yarn run build
+      - name: Release
+        uses: s0/git-publish-subdir-action@release
+        env:
+          REPO: git@github.com:joakimhedberg/valheim-status.git
+          BRANCH: release
+          FOLDER: dist
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_KEY }}

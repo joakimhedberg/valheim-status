@@ -1,0 +1,12 @@
+[Unit]
+Description=Valheim status service
+Wants=network.target
+After=syslog.target network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=10
+User=<service user>
+ExecStart=/usr/bin/node <path to working directory/dist/index.js>
+WorkingDirectory=<path to working directory>
