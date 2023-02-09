@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -30,11 +39,18 @@ if (process.env.PUSHOVER_USER && process.env.PUSHOVER_TOKEN && process.env.MODE 
         exports.pushover = undefined;
     }
 }
-exports.parser.on('player_connect', (player, isCatchup) => {
+exports.parser.on('player_connect', (player, isCatchup) => __awaiter(void 0, void 0, void 0, function* () {
+    // If this is a catchup event we don't want to spam pushover with hundreds of messages.
     if (!isCatchup) {
+        let maxRetries = 5;
+        while (player.player_name === undefined && maxRetries > 0) {
+            yield new Promise(resolve => setTimeout(resolve, 2000));
+            yield player.loadName(process.env.STEAM_API_KEY);
+            maxRetries--;
+        }
         exports.pushover === null || exports.pushover === void 0 ? void 0 : exports.pushover.send('Valheim user CONNECTED', `${player.player_name} joined the game`);
     }
-});
+}));
 exports.parser.on('player_disconnect', (player, isCatchup) => {
     if (!isCatchup) {
         exports.pushover === null || exports.pushover === void 0 ? void 0 : exports.pushover.send('Valheim user DISCONNECTED', `${player.player_name} left the game`);
