@@ -1,9 +1,9 @@
 name: Release
 on:
-  workflow_run:
-    workflows: [CI]
-    types:
-      - completed
+  workflow_dispatch:
+    perform_release:
+      required: true
+      type: boolean
 jobs:
   build:
     runs-on: ubuntu-latest

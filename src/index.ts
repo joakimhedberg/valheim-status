@@ -5,23 +5,34 @@ import ConnectionHandler from './classes/ConnectionHandler'
 import { Pushover } from 'pushover-js'
 import Player from './classes/Player'
 import fs from 'fs'
-
+import { execSync } from 'child_process'
 
 dotenv.config()
 
 const app: Express = express()
 const port = process.env.PORT
 
-const log_path = process.env.STDOUT_PATH ?? ''
+let logPath = process.env.STDOUT_PATH ?? ''
 
 app.use(express.json())
 app.use(routes)
 
-if (!fs.existsSync(log_path)) {
-  throw new Error('No stdout file found');
+if (!fs.existsSync(logPath)) {
+  if (process.platform !== 'linux') {
+    throw new Error(`Stdout file '${logPath}' does not exist, and auto resolve will not work for platform '${process.platform}'. Fix your .env file.`)
+  }
+  const result = execSync(`ps ax -ww -o pid,ppid,uid,gid,args | grep -v grep | grep valheim_server | awk '{print $1}'`)
+  const pid = result.toString().trim()
+  if (pid && !isNaN(Number(pid))) {
+    logPath = `/proc/${pid}/fd/1`
+  }
 }
 
-export const parser = new ConnectionHandler(process.env.STEAM_API_KEY)
+if (!fs.existsSync(logPath)) {
+  throw new Error(`No stdout file found in '${logPath}. Fix your .env file.'`);
+}
+
+export const parser = new ConnectionHandler(process.env.MODE === 'development'? undefined: process.env.STEAM_API_KEY)
 export let pushover: Pushover | undefined = undefined
 
 if (process.env.PUSHOVER_USER && process.env.PUSHOVER_TOKEN && process.env.MODE !== 'development') {
@@ -53,6 +64,6 @@ parser.on('player_disconnect', (player: Player, isCatchup?: boolean) => {
 })
 
 app.listen(port, () => {
-  parser.start(log_path, true)
+  parser.start(logPath, true)
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`)
 })
