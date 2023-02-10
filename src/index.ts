@@ -5,19 +5,27 @@ import ConnectionHandler from './classes/ConnectionHandler'
 import { Pushover } from 'pushover-js'
 import Player from './classes/Player'
 import fs from 'fs'
-
+import { execSync } from 'child_process'
 
 dotenv.config()
 
 const app: Express = express()
 const port = process.env.PORT
 
-const log_path = process.env.STDOUT_PATH ?? ''
+let logPath = process.env.STDOUT_PATH ?? ''
 
 app.use(express.json())
 app.use(routes)
 
-if (!fs.existsSync(log_path)) {
+if (!fs.existsSync(logPath) && (process.platform === 'linux')) {
+  const result = execSync(`ps ax -ww -o pid,ppid,uid,gid,args | grep -v grep | grep valheim_server | awk '{print $1}'`)
+  const pid = result.toString()
+  if (pid && !isNaN(Number(pid))) {
+    logPath = `/proc/${pid}/fd/1`
+  }
+}
+
+if (!fs.existsSync(logPath)) {
   throw new Error('No stdout file found');
 }
 
@@ -53,6 +61,6 @@ parser.on('player_disconnect', (player: Player, isCatchup?: boolean) => {
 })
 
 app.listen(port, () => {
-  parser.start(log_path, true)
+  parser.start(logPath, true)
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`)
 })
