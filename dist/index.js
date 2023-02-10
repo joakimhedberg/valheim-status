@@ -20,16 +20,27 @@ const routes_1 = __importDefault(require("./routes"));
 const ConnectionHandler_1 = __importDefault(require("./classes/ConnectionHandler"));
 const pushover_js_1 = require("pushover-js");
 const fs_1 = __importDefault(require("fs"));
+const child_process_1 = require("child_process");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = process.env.PORT;
-const log_path = (_a = process.env.STDOUT_PATH) !== null && _a !== void 0 ? _a : '';
+let logPath = (_a = process.env.STDOUT_PATH) !== null && _a !== void 0 ? _a : '';
 app.use(express_1.default.json());
 app.use(routes_1.default);
-if (!fs_1.default.existsSync(log_path)) {
-    throw new Error('No stdout file found');
+if (!fs_1.default.existsSync(logPath)) {
+    if (process.platform !== 'linux') {
+        throw new Error(`Stdout file '${logPath}' does not exist, and auto resolve will not work for platform '${process.platform}'. Fix your .env file.`);
+    }
+    const result = (0, child_process_1.execSync)(`ps ax -ww -o pid,ppid,uid,gid,args | grep -v grep | grep valheim_server | awk '{print $1}'`);
+    const pid = result.toString().trim();
+    if (pid && !isNaN(Number(pid))) {
+        logPath = `/proc/${pid}/fd/1`;
+    }
 }
-exports.parser = new ConnectionHandler_1.default(process.env.STEAM_API_KEY);
+if (!fs_1.default.existsSync(logPath)) {
+    throw new Error(`No stdout file found in '${logPath}. Fix your .env file.'`);
+}
+exports.parser = new ConnectionHandler_1.default(process.env.MODE === 'development' ? undefined : process.env.STEAM_API_KEY);
 exports.pushover = undefined;
 if (process.env.PUSHOVER_USER && process.env.PUSHOVER_TOKEN && process.env.MODE !== 'development') {
     try {
@@ -57,6 +68,6 @@ exports.parser.on('player_disconnect', (player, isCatchup) => {
     }
 });
 app.listen(port, () => {
-    exports.parser.start(log_path, true);
+    exports.parser.start(logPath, true);
     console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
 });
