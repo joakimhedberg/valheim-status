@@ -17,19 +17,22 @@ let logPath = process.env.STDOUT_PATH ?? ''
 app.use(express.json())
 app.use(routes)
 
-if (!fs.existsSync(logPath) && (process.platform === 'linux')) {
+if (!fs.existsSync(logPath)) {
+  if (process.platform !== 'linux') {
+    throw new Error(`Stdout file '${logPath}' does not exist, and auto resolve will not work for platform '${process.platform}'. Fix your .env file.`)
+  }
   const result = execSync(`ps ax -ww -o pid,ppid,uid,gid,args | grep -v grep | grep valheim_server | awk '{print $1}'`)
-  const pid = result.toString()
+  const pid = result.toString().trim()
   if (pid && !isNaN(Number(pid))) {
     logPath = `/proc/${pid}/fd/1`
   }
 }
 
 if (!fs.existsSync(logPath)) {
-  throw new Error('No stdout file found');
+  throw new Error(`No stdout file found in '${logPath}. Fix your .env file.'`);
 }
 
-export const parser = new ConnectionHandler(process.env.STEAM_API_KEY)
+export const parser = new ConnectionHandler(process.env.MODE === 'development'? undefined: process.env.STEAM_API_KEY)
 export let pushover: Pushover | undefined = undefined
 
 if (process.env.PUSHOVER_USER && process.env.PUSHOVER_TOKEN && process.env.MODE !== 'development') {
