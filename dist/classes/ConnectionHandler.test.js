@@ -19,11 +19,13 @@ const getUserStatus = () => __awaiter(void 0, void 0, void 0, function* () {
         const ch = new ConnectionHandler_1.default(undefined);
         let connected = 0;
         let disconnected = 0;
-        ch.on('player_connect', () => connected++);
+        ch.on('player_connect', () => {
+            connected++;
+        });
         ch.on('player_disconnect', () => disconnected++);
         ch.on('lines_end', () => {
             ch.stop();
-            resolve({ connected: connected, disconnected: disconnected });
+            resolve({ connected: connected, disconnected: disconnected, players: ch.playerList });
         });
         ch.start('./testing/stdout_test.log', true);
     });
@@ -34,12 +36,17 @@ describe('Test the connection handler', () => {
             const status = yield getUserStatus();
             this['connected'] = status.connected;
             this['disconnected'] = status.disconnected;
+            this['players'] = status.players;
         });
     });
     it('Should match the number of connected users', function () {
         (0, chai_1.expect)(this['connected']).to.equal(84);
     });
     it('Should match the number of disconnected users', function () {
-        (0, chai_1.expect)(this['disconnected']).to.equal(76);
+        (0, chai_1.expect)(this['disconnected']).to.equal(78);
+    });
+    it('Should match the players', function () {
+        console.log(this['players']);
+        (0, chai_1.expect)(this['players'].map((p) => p.player_name)).to.deep.equal(['Greger', 'Uno', 'Tjaldur', 'Björn']);
     });
 });

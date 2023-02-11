@@ -22,7 +22,32 @@ class Player {
      * @param playerId Steam user key
      */
     constructor(playerId) {
+        this.isConnected = true;
+        this.stateLog = [];
         this.playerId = playerId;
+    }
+    getStats() {
+        let connected;
+        const pairs = [];
+        for (const item of this.stateLog.sort((a, b) => a.date.getTime() - b.date.getTime())) {
+            if (item.connected) {
+                connected = item;
+            }
+            if (!item.connected && connected) {
+                pairs.push({ start: connected.date, end: item.date, duration: item.date.getTime() - connected.date.getTime() });
+                connected = undefined;
+            }
+        }
+        return pairs;
+    }
+    getTotalDuration() {
+        return this.getStats().reduce((partial, a) => partial + a.duration, 0);
+    }
+    setConnected(connected, date) {
+        this.isConnected = connected;
+        if (date) {
+            this.stateLog.push({ date: date, connected: connected });
+        }
     }
     /**
      * Load the player name from the NameGetter.
@@ -34,6 +59,7 @@ class Player {
             if (!this.player_name) {
                 this.player_name = yield NameGetter_1.default.getName(_steamApiKey, this.playerId);
             }
+            return this.player_name !== undefined;
         });
     }
 }

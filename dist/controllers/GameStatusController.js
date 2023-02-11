@@ -16,20 +16,22 @@ class GameStatusController {
 exports.default = GameStatusController;
 _a = GameStatusController;
 GameStatusController.GetGameStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
     try {
         res.setHeader('Content-Type', 'text/html');
-        res.status(200).send(__1.parser.getHtml());
+        res.status(200).send(__1.parser.getHtml((_b = req.header('host')) !== null && _b !== void 0 ? _b : ''));
     }
     catch (err) {
         res.status(400).send();
     }
 });
 GameStatusController.GetGameLog = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _c;
     try {
         res.setHeader('Content-Type', 'text/html');
-        res.status(200).send(__1.parser.getLog());
+        res.status(200).send(__1.parser.getLog((_c = req.header('host')) !== null && _c !== void 0 ? _c : ''));
     }
-    catch (_b) {
+    catch (_d) {
         res.status(400).send();
     }
 });

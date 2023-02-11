@@ -72,7 +72,7 @@ class NameGetter {
                     return undefined;
                 }
             }
-            catch (_a) {
+            catch (err) {
                 return undefined;
             }
         });

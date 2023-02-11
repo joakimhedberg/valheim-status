@@ -12,23 +12,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const chai_1 = require("chai");
-const LogListener_1 = __importDefault(require("./LogListener"));
-const getListenedLog = (filename) => __awaiter(void 0, void 0, void 0, function* () {
-    const listener = new LogListener_1.default(filename, true);
-    let closing = 0;
-    let handshake = 0;
-    listener.on('closing_socket', () => closing++);
-    listener.on('got_handshake', () => handshake++);
-    listener.start();
-    return { closing: closing, handshake: handshake };
-});
-describe('Testing the log listener', function () {
-    it('Should verify the number of connections and disconnections', function () {
-        return __awaiter(this, void 0, void 0, function* () {
-            return getListenedLog('./testing/stdout_test.log').then(result => {
-                chai_1.assert.deepEqual(result, { handshake: 84, closing: 78 });
-            });
-        });
-    });
-});
+const express_1 = require("express");
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const on = fs_1.default.readFileSync(path_1.default.resolve(__dirname, '../../img/bulb.png'));
+const off = fs_1.default.readFileSync(path_1.default.resolve(__dirname, '../../img/bulb_off.png'));
+const router = (0, express_1.Router)();
+router.get('/on', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    res.setHeader('Content-Type', 'image/png');
+    res.status(200).send(on);
+}));
+router.get('/off', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    res.setHeader('Content-Type', 'image/png');
+    res.status(200).send(off);
+}));
+exports.default = router;
