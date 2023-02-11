@@ -3,6 +3,7 @@ import Player from './Player'
 import { JSDOM } from 'jsdom'
 import LogListener from './LogListener'
 import fs from 'fs'
+import DateTimeHelpers from './helpers/DateTimeHelpers'
 declare interface ConnectionHandler {
   /**
    * Triggers when a player disconnects from the server
@@ -15,13 +16,13 @@ declare interface ConnectionHandler {
    * @param event 
    * @param listener 
    */
-  off(event: 'player_disconnect', listener: (player: Player, isCatchup?: boolean) => void): this
+  off(event: 'player_disconnect', listener: (player: Player, isCatchup?: boolean) => Promise<void>): this
   /**
    * Triggers when a player connects to the server
    * @param event 
    * @param listener 
    */
-  on(event: 'player_connect', listener: (player: Player, isCatchup?: boolean) => void): this
+  on(event: 'player_connect', listener: (player: Player, isCatchup?: boolean) => Promise<void>): this
   /**
    * Stop listening to the player connect event
    * @param event 
@@ -41,7 +42,7 @@ declare interface ConnectionHandler {
    */
   off(event: 'lines_start', listener: () => void): this
   /**
-   * Listen to the lines_end event, emitted after data has been processed and emitted
+   * Listen to the lines_end event, emitted after data has11 been processed and emitted
    * @param event 
    * @param listener 
    */
@@ -69,7 +70,7 @@ class ConnectionHandler extends EventEmitter {
   }
   private _listener: LogListener | undefined
   private _players: Map<string, Player> = new Map()
-  private _log: [Date | undefined, string][] = []
+  private _log: { date?: Date, message?: string, player?: Player, userEvent?: 'connected' | 'disconnected' }[] = []
 
   public get log() { return this._log }
 
@@ -84,8 +85,8 @@ class ConnectionHandler extends EventEmitter {
       throw new Error(`File ${filename} does not exists`)
     }
     this._listener = new LogListener(filename, catchUp)
-    this._listener.on('got_handshake', async (date, steamId, isCatchup) => await this._handleGotHandshake(date, steamId, isCatchup))
-    this._listener.on('closing_socket', async (date, steamId, isCatchup) => await this._handleClosingSocket(date, steamId, isCatchup))
+    this._listener.on('got_handshake', (date, steamId, isCatchup) => this._handleGotHandshake(date, steamId, isCatchup))
+    this._listener.on('closing_socket', (date, steamId, isCatchup) => this._handleClosingSocket(date, steamId, isCatchup))
     this._listener.on('lines_start', () => this.emit('lines_start'))
     this._listener.on('lines_end', () => this.emit('lines_end'))
     this._listener.start()
@@ -97,16 +98,17 @@ class ConnectionHandler extends EventEmitter {
    * @param steamId Player steam id as parsed from the file
    * @param isCatchup Identifies if this is within the catchup event, passed on through emitters
    */
-  private async _handleGotHandshake(date: Date | undefined, steamId: string, isCatchup?: boolean) {
+  private _handleGotHandshake(date: Date | undefined, steamId: string, isCatchup?: boolean) {
     let player = this._players.get(steamId)
     if (!player) {
       player = new Player(steamId)
       this._players.set(steamId, player)    
     }
-
+    
+    player.setConnected(true, date)
+    player.loadName(this._steamApiKey)
     this.emit('player_connect', player, isCatchup)
-    await player.loadName(this._steamApiKey)
-    this._log.push([date, `User ${player?.player_name} with steam id ${player?.playerId} connected`])
+    this._log.push({date: date, message: `User ${player?.player_name} with steam id ${player?.playerId}`, player: player, userEvent: 'connected'})
   }
 
   /**
@@ -115,12 +117,13 @@ class ConnectionHandler extends EventEmitter {
    * @param steamId Player steam id
    * @param isCatchup Identifies if this is within the catchup event, passed on through emitters
    */
-  private async _handleClosingSocket(date: Date | undefined, steamId: string, isCatchup?: boolean) {
+  private _handleClosingSocket(date: Date | undefined, steamId: string, isCatchup?: boolean) {
     if (this._players.has(steamId)) {
       const player = this._players.get(steamId)
-      if (this._players.delete(steamId)) {
+      if (player) {
+        player.setConnected(false, date)
         this.emit('player_disconnect', player, isCatchup)
-        this._log.push([date, `User ${player?.player_name} with steam id ${player?.playerId} disconnected`])
+        this._log.push({date: date, message: `User ${player?.player_name} with steam id ${player?.playerId}`, player: player, userEvent: 'disconnected'})
       }
     }
   }
@@ -147,7 +150,7 @@ class ConnectionHandler extends EventEmitter {
    * 
    * @returns The log items as HTML
    */
-  public getLog(): string {
+  public getLog(hostname: string): string {
     const dom = new JSDOM()
     const document = dom.window.document
     const main_div = document.createElement('div')
@@ -166,9 +169,15 @@ class ConnectionHandler extends EventEmitter {
       }
     `
 
-    for (const item of this._log) {
+    for (const item of this._log.filter(li => li.userEvent !== undefined && li.message !== undefined)) {
       const item_div = document.createElement('div')
       item_div.className = 'item_div'
+      const img = document.createElement('img')
+      img.src = `http://${hostname}/img/on`
+      img.alt = 'Connected'
+      img.style.width = '24px'
+      img.style.height = '24px'
+      item_div.appendChild(img)
       const date_span = document.createElement('span')
       date_span.className = 'date_span'
       const text_span = document.createElement('span')
@@ -177,8 +186,8 @@ class ConnectionHandler extends EventEmitter {
       item_div.appendChild(text_span)
       main_div.appendChild(item_div)
 
-      date_span.appendChild(document.createTextNode((item[0] !== undefined? item[0].toLocaleString(): '')))
-      text_span.appendChild(document.createTextNode(item[1]))
+      date_span.appendChild(document.createTextNode((item.date !== undefined? item.date.toLocaleString(): '')))
+      text_span.appendChild(document.createTextNode(item.message ?? ''))
     }
 
     return dom.serialize()
@@ -188,22 +197,40 @@ class ConnectionHandler extends EventEmitter {
    * 
    * @returns The players as a HTML list
    */
-  public getHtml(): string {
+  public getHtml(hostname: string): string {
     const dom = new JSDOM()
     const document = dom.window.document
     const style = document.createElement('style')
     const meta = document.createElement('meta')
     meta.httpEquiv = 'refresh'
-    meta.content = '10'
+    meta.content = '60'
+
+    const script = document.createElement('script')
+    script.lang = 'javascript'
+    script.innerHTML = `
+    function toggleVisibility(id) {
+      const items = document.getElementsByClassName(id)
+      if (items[0].style.visibility !== 'collapse') {
+        for (const item of items) {
+          item.style.visibility = 'collapse'
+        }
+      }
+      else {
+        for (const item of items) {
+          item.style.visibility = 'visible'
+        }
+      }
+    }
+    `
 
     const title_div = document.createElement('div')
-    const list_div = document.createElement('div')
+    const listTable = document.createElement('table')
     
     title_div.className = 'title_div'
-    list_div.className = 'list_div'
+    listTable.className = 'list_div'
 
     document.body.appendChild(title_div)
-    document.body.appendChild(list_div)
+    document.body.appendChild(listTable)
 
     title_div.appendChild(document.createTextNode('Valheim players'))
     style.innerHTML = `
@@ -216,31 +243,60 @@ class ConnectionHandler extends EventEmitter {
       background-color: #fee7e7;
     }
 
-    .list_div {
-      margin: 3px;
-      padding: 10px;
-      border-radius: 6px;
-      border: solid 2px darkgray;
+    .player_row td {
+      border-bottom: dashed 1px lightgray;
     }
 
-    .item {
-      margin: 2px;
-      padding: 4px;
-      font-size: 14pt;
-      background: #f0f7ff;
-      border: solid 2px lightblue;
-      border-radius: 3px;
+    .player_name {
+      cursor: pointer;
+    }
+
+    [class^="stat_row"] {
+      background-color: lightgray;
+      font-style: italic;
+    }
+
+    table {
+      width: 100%;
     }
     `
     document.head.appendChild(meta)
     document.head.appendChild(style)
+    document.head.appendChild(script)
+    let i = 0;
     
-    for (const player of this._players.values()) {
-      const item_div = dom.window.document.createElement('div')
-      item_div.appendChild(dom.window.document.createTextNode(player.player_name ?? 'N/A'))
-      item_div.setAttribute('hidden_data', player.playerId)
-      item_div.className = 'item'
-      list_div.appendChild(item_div)
+    for (const player of this.playerList) {
+      const playerRow = listTable.insertRow()
+      playerRow.className = 'player_row'
+      const iconCol = playerRow.insertCell()
+      const iconImg = document.createElement('img')
+      iconImg.width = iconImg.height = 20
+      iconImg.src = `http://${hostname}/img/${player.isConnected ? 'on' : 'off'}`
+      iconCol.appendChild(iconImg)
+      const nameCol = playerRow.insertCell()
+      const nameSpan = document.createElement('span')
+      nameSpan.className = 'player_name'
+      nameSpan.setAttribute('onclick', `toggleVisibility('stat_row${i}')`)
+      nameSpan.appendChild(document.createTextNode(player.player_name ?? 'N/A'))
+      nameCol.appendChild(nameSpan)
+      const durationCol = playerRow.insertCell()
+      durationCol.appendChild(document.createTextNode(DateTimeHelpers.MillisecondsToHumanReadable(player.getTotalDuration())))
+
+      for (const stat of player.getStats()) {
+        const statRow = listTable.insertRow()
+        statRow.className = `stat_row${i}`
+        statRow.style.visibility = 'collapse'
+        const connectedCell = statRow.insertCell()
+        const disconnectedCell = statRow.insertCell()
+        const durationCell = statRow.insertCell()
+
+        connectedCell.appendChild(document.createTextNode(DateTimeHelpers.getTimeString(stat.start, 'hh:mm:ss')))
+        connectedCell.colSpan = 2
+        statRow.insertCell()
+        disconnectedCell.appendChild(document.createTextNode(DateTimeHelpers.getTimeString(stat.end, 'hh:mm:ss')))
+        durationCell.appendChild(document.createTextNode(DateTimeHelpers.MillisecondsToHumanReadable(stat.duration)))
+      }
+      i++
     }
    
     return dom.serialize()
