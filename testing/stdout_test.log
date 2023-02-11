@@ -10642,6 +10642,5 @@ Total: 1312.376061 ms (FindLiveObjects: 300.774036 ms CreateObjectMapping: 61.89
 02/01/2023 08:51:21: Got handshake from client 12345
 02/01/2023 17:23:45: Closing socket 12345
 02/01/2023 08:51:21: Got handshake from client 12345
-02/01/2023 17:23:45: Closing socket 12345
 
 

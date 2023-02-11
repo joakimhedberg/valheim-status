@@ -5,7 +5,7 @@ export default class GameStatusController {
   public static GetGameStatus = async (req: Request, res: Response)=> {
     try {
       res.setHeader('Content-Type', 'text/html')
-      res.status(200).send(parser.getHtml())
+      res.status(200).send(parser.getHtml(req.header('host') ?? ''))
     }
     catch (err) {
       res.status(400).send()
@@ -15,7 +15,7 @@ export default class GameStatusController {
   public static GetGameLog = async (req: Request, res: Response) => {
     try {
       res.setHeader('Content-Type', 'text/html')
-      res.status(200).send(parser.getLog())
+      res.status(200).send(parser.getLog(req.header('host') ?? ''))
     } catch {
       res.status(400).send()
     }

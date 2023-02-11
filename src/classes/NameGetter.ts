@@ -67,7 +67,7 @@ export default class NameGetter {
       } else {
         return undefined
       }
-    } catch {
+    } catch (err) {
       return undefined
     }
   }

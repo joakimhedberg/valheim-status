@@ -15,7 +15,7 @@ const getListenedLog = async(filename: string) => {
 describe('Testing the log listener', function() {
   it('Should verify the number of connections and disconnections', async function() {
     return getListenedLog('./testing/stdout_test.log').then(result => {
-      assert.deepEqual(result, {handshake: 84, closing: 79})
+      assert.deepEqual(result, {handshake: 84, closing: 78})
     })
   })
 })
